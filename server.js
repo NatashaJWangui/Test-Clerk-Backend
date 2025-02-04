@@ -6,8 +6,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
-// Clerk SDK for Express
-const { clerkMiddleware, requireAuth } = require('@clerk/express');
 
 // Log the current environment
 if (process.env.NODE_ENV === 'production') {
@@ -40,23 +38,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Clerk Middleware to authenticate the session
-app.use(clerkMiddleware())
 
 // Routes
 app.use('/admin', adminRoutes);  // Clerk authentication 
 
 app.get('/', (req, res) => {
   res.send('Test Clerk App Backend is running!');
-});
-
-// Example Admin Dashboard Route with Clerk protection
-app.get('/admin/dashboard', requireAuth(), async (req, res) => {
-  try {
-    res.status(200).json({message: 'Dashboard redirect successful'});
-  } catch (err) {
-    res.status(500).json({ error: 'Error fetching dashboard' });
-  }
 });
 
 // Health check route
@@ -72,7 +59,7 @@ app.get('/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
 app.listen(PORT, () => {
