@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 // Clerk SDK for Express
-const { Clerk } = require('@clerk/express');
+const { clerkMiddleware, requireAuth } = require('@clerk/express');
 
 // Log the current environment
 if (process.env.NODE_ENV === 'production') {
@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 // Clerk Middleware to authenticate the session
-app.use(Clerk.expressWithAuth());
+app.use(clerkMiddleware())
 
 // Routes
 app.use('/admin', adminRoutes);  // Clerk authentication 
@@ -51,9 +51,7 @@ app.get('/', (req, res) => {
 });
 
 // Example Admin Dashboard Route with Clerk protection
-app.get('/admin/dashboard', Clerk.expressWithAuth(), async (req, res) => {
-  const user = req.user; // Access authenticated user's data
-
+app.get('/admin/dashboard', requireAuth(), async (req, res) => {
   try {
     res.status(200).json({message: 'Dashboard redirect successful'});
   } catch (err) {

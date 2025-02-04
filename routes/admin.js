@@ -1,40 +1,61 @@
 const express = require('express');
-const { Clerk } = require('@clerk/express');
+const { getAuth, clerkClient, requireAuth } = require('@clerk/express');
 const router = express.Router();
 
 // Use Clerk's middleware for authentication
-router.use(Clerk.express());
+router.use(requireAuth());
 
 
 // Admin Dashboard Route (protected)
-router.get('/admin/dashboard', Clerk.requireSession(), (req, res) => {
-  // The Clerk session is now validated, and the user data is available via `req.user`
-  const user = req.user;
-  
-  res.json({
-    message: `Welcome to the Admin Dashboard, ${user.firstName}!`,
-  });
+router.get('/admin/dashboard', async (req, res) => {
+  try {
+    // Get the user's `userId` from Clerk
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Fetch user details from Clerk
+    const user = await clerkClient.users.getUser(userId);
+
+    res.json({
+      message: `Welcome to the Admin Dashboard, ${user.firstName}!`,
+      user,
+    });
+  } catch (error) {
+    console.error('Error fetching admin data:', error);
+    res.status(500).json({ error: 'Failed to fetch admin data' });
+  }
 });
 
-// Admin Login Route (using Clerk for authentication)
+// Admin Login Route (Verifying Clerk Session)
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  
+  const { sessionToken } = req.body; // Expect a session token from frontend authentication
+
   try {
-    // Use Clerk's sign-in API to authenticate the user (admin in this case)
-    const { user, session } = await Clerk.users.signIn({
-      email,
-      password,
-    });
-    
-    // Return the session token to the client
+    if (!sessionToken) {
+      return res.status(400).json({ error: 'Session token is required' });
+    }
+
+    // Verify session with Clerk
+    const session = await clerkClient.sessions.verifySession(sessionToken);
+
+    if (!session || session.status !== 'active') {
+      return res.status(401).json({ error: 'Invalid or inactive session' });
+    }
+
+    // Fetch user details
+    const user = await clerkClient.users.getUser(session.userId);
+
     res.json({
       success: true,
-      token: session.id, // Use Clerk's session ID for the user
+      message: 'Login successful',
+      user,
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(400).json({ success: false, message: 'Authentication failed' });
+    res.status(401).json({ error: 'Authentication failed' });
   }
 });
 
