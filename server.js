@@ -18,6 +18,9 @@ if (process.env.NODE_ENV === 'production') {
 
 console.log('NODE_ENV:', process.env.NODE_ENV); // Check what value is being read
 
+console.log('Publishable Key:', process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY); //Clerk Publishable Key
+console.log('Secret Key:', process.env.CLERK_SECRET_KEY);
+
 // Import routes
 const adminRoutes = require('./routes/admin');
 
